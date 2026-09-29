@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrevista</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #ffffff; --ink: #1d1d1b; --muted: #6b6a66;
+    --line: #e4e2dc; --accent: #2f5d50; --accent-soft: #e3ece8;
+    --warn: #b4531a; --danger: #a8322a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex; min-height: 100vh; align-items: center; justify-content: center; padding: 16px;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    width: 100%; max-width: 640px; padding: 32px;
+  }
+  h1 { font-size: 22px; margin: 0 0 8px; }
+  h2 { font-size: 20px; margin: 0 0 16px; line-height: 1.4; }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .tela { display: none; }
+  .tela.ativa { display: block; }
+  ul { padding-left: 20px; margin: 0 0 16px; }
+  li { margin-bottom: 4px; }
+  button {
+    font: inherit; font-weight: 600; border: 0; border-radius: 10px; padding: 12px 20px;
+    background: var(--accent); color: #fff; cursor: pointer;
+  }
+  button.sec { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .acoes { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+  .consent {
+    display: flex; gap: 10px; align-items: flex-start; background: var(--bg);
+    border-radius: 10px; padding: 14px; margin: 16px 0; font-size: 14px;
+  }
+  .consent input { margin-top: 3px; }
+  .medidor { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; margin: 8px 0; }
+  .medidor div { height: 100%; width: 0; background: var(--accent); transition: width .08s; }
+  .topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .etiqueta { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .relogio { font-variant-numeric: tabular-nums; font-size: 28px; font-weight: 700; }
+  .relogio.urgente { color: var(--danger); }
+  .barra { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin: 12px 0 20px; }
+  .barra div { height: 100%; width: 100%; background: var(--accent); }
+  .estado { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+  .ponto { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); animation: pisca 1s infinite; }
+  @keyframes pisca { 50% { opacity: .25; } }
+  .erro { color: var(--danger); }
+  .aviso { background: #fbefe6; color: var(--warn); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
+</style>
+</head>
+<body>
+<main class="card">
+
+  <!-- Carregando -->
+  <section id="t-carregando" class="tela ativa">
+    <p class="muted">Carregando…</p>
+  </section>
+
+  <!-- Erro -->
+  <section id="t-erro" class="tela">
+    <h1 id="erro-titulo">Não foi possível abrir a entrevista</h1>
+    <p id="erro-texto" class="muted"></p>
+  </section>
+
+  <!-- Boas-vindas -->
+  <section id="t-inicio" class="tela">
+    <h1 id="ola">Olá!</h1>
+    <p id="resumo" class="muted"></p>
+    <p><b>Como funciona</b></p>
+    <ul>
+      <li>Você verá uma pergunta por vez e responderá em áudio.</li>
+      <li id="li-leitura">Antes de cada resposta, você tem um tempo para ler e pensar.</li>
+      <li id="li-tempo"></li>
+      <li>Não dá para voltar, pausar ou regravar uma resposta.</li>
+      <li><b>O link só pode ser usado uma vez.</b> Ao clicar em começar, a entrevista não pode ser reiniciada.</li>
+    </ul>
+
+    <p><b>Teste seu microfone</b></p>
+    <p class="muted">Fale algo e veja se a barra se mexe.</p>
+    <div class="medidor"><div id="nivel"></div></div>
+    <div class="acoes" style="margin-top:8px">
+      <button id="btn-mic" class="sec">Ativar microfone</button>
+    </div>
+    <p id="mic-status" class="muted" style="margin-top:8px"></p>
+
+    <label class="consent">
+      <input type="checkbox" id="aceite">
+      <span>Autorizo a gravação do áudio das minhas respostas, sua transcrição e sua avaliação
+      com apoio de inteligência artificial para fins deste processo seletivo. A decisão final é
+      sempre de uma pessoa.</span>
+    </label>
+
+    <div class="acoes">
+      <button id="btn-comecar" disabled>Começar entrevista</button>
+    </div>
+  </section>
+
+  <!-- Pergunta -->
+  <section id="t-pergunta" class="tela">
+    <div class="topo">
+      <span class="etiqueta" id="contador"></span>
+      <span class="relogio" id="relogio">0:00</span>
+    </div>
+    <h2 id="texto-pergunta"></h2>
+    <div class="barra"><div id="barra-tempo"></div></div>
+    <p id="estado" class="estado"></p>
+    <div class="acoes">
+      <button id="btn-acao"></button>
+    </div>
+    <p id="envio-erro" class="erro" style="display:none;margin-top:12px"></p>
+  </section>
+
+  <!-- Fim -->
+  <section id="t-fim" class="tela">
+    <h1>Pronto, entrevista concluída!</h1>
+    <p class="muted">Suas respostas foram enviadas. Pode fechar esta página.</p>
+  </section>
+
+</main>
+
+<script>
+// ===== CONFIGURAÇÃO: cole aqui a URL do App da Web do Apps Script =====
+const API_URL = 'COLE_AQUI_A_URL_DO_APP_DA_WEB';
+// ======================================================================
+
+const MIN_RESPOSTA_SEG = 5; // tempo mínimo antes de liberar "concluir resposta"
+
+const token = new URLSearchParams(location.search).get('t');
+let config = null;        // dados da vaga
+let perguntas = [];
+let idx = 0;
+let stream = null;
+let emAndamento = false;
+let timer = null;
+
+const $ = id => document.getElementById(id);
+
+function mostrar(tela) {
+  document.querySelectorAll('.tela').forEach(s => s.classList.remove('ativa'));
+  $('t-' + tela).classList.add('ativa');
+}
+
+const MSG_ERRO = {
+  link_invalido: ['Link inválido', 'Confira se você abriu o link completo enviado por email.'],
+  ja_iniciada: ['Esta entrevista já foi iniciada', 'O link só pode ser usado uma vez. Se algo deu errado, fale com quem te convidou.'],
+  ja_concluida: ['Entrevista já concluída', 'Suas respostas já foram recebidas. Obrigado!'],
+  expirado: ['Link expirado', 'O prazo para esta entrevista terminou. Fale com quem te convidou.'],
+  sem_microfone: ['Não conseguimos acessar o microfone', 'Permita o acesso ao microfone no navegador e recarregue a página.'],
+  navegador: ['Navegador não suportado', 'Use a versão mais recente do Chrome, Edge, Firefox ou Safari em um computador.'],
+};
+
+function erro(codigo, detalhe) {
+  const [titulo, texto] = MSG_ERRO[codigo] || ['Algo deu errado', detalhe || 'Tente novamente em alguns minutos.'];
+  $('erro-titulo').textContent = titulo;
+  $('erro-texto').textContent = texto;
+  emAndamento = false;
+  mostrar('erro');
+}
+
+// ---------- API ----------
+
+async function apiGet(params) {
+  const r = await fetch(API_URL + '?' + new URLSearchParams(params));
+  return r.json();
+}
+
+// Sem header Content-Type = requisição simples (sem preflight de CORS), que o Apps Script aceita.
+async function apiPost(corpo) {
+  const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(corpo) });
+  return r.json();
+}
+
+async function comRetentativas(fn, tentativas = 3) {
+  for (let i = 0; i < tentativas; i++) {
+    try {
+      const r = await fn();
+      if (r.ok) return r;
+      if (i === tentativas - 1) return r;
+    } catch (e) {
+      if (i === tentativas - 1) throw e;
+    }
+    await new Promise(res => setTimeout(res, 1500 * (i + 1)));
+  }
+}
+
+// ---------- Início ----------
+
+async function carregar() {
+  if (!token) return erro('link_invalido');
+  if (!navigator.mediaDevices || !window.MediaRecorder) return erro('navegador');
+  try {
+    const r = await apiGet({ acao: 'carregar', t: token });
+    if (!r.ok) return erro(r.erro);
+    config = r;
+    $('ola').textContent = `Olá, ${r.nome}!`;
+    $('resumo').textContent = `Entrevista para ${r.vaga} · ${r.totalPerguntas} pergunta(s).`;
+    $('li-tempo').textContent = `Você terá até ${formatar(r.tempoResposta)} para responder cada pergunta.`;
+    if (!r.tempoLeitura) $('li-leitura').style.display = 'none';
+    else $('li-leitura').textContent = `Antes de cada resposta, você tem ${formatar(r.tempoLeitura)} para ler e pensar.`;
+    mostrar('inicio');
+  } catch (e) {
+    erro('generico');
+  }
+}
+
+$('btn-mic').onclick = async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    $('btn-mic').disabled = true;
+    $('btn-mic').textContent = 'Microfone ativado';
+    $('mic-status').textContent = 'Se a barra se mexe quando você fala, está tudo certo.';
+    medirNivel(stream);
+    atualizarBotaoComecar();
+  } catch (e) {
+    $('mic-status').innerHTML = '<span class="erro">Não foi possível acessar o microfone. Permita o acesso no navegador e tente de novo.</span>';
+  }
+};
+
+function medirNivel(s) {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const analyser = ctx.createAnalyser();
+  analyser.fftSize = 512;
+  ctx.createMediaStreamSource(s).connect(analyser);
+  const dados = new Uint8Array(analyser.fftSize);
+  (function loop() {
+    analyser.getByteTimeDomainData(dados);
+    let pico = 0;
+    for (const v of dados) pico = Math.max(pico, Math.abs(v - 128));
+    $('nivel').style.width = Math.min(100, pico * 2) + '%';
+    requestAnimationFrame(loop);
+  })();
+}
+
+$('aceite').onchange = atualizarBotaoComecar;
+function atualizarBotaoComecar() {
+  $('btn-comecar').disabled = !(stream && $('aceite').checked);
+}
+
+$('btn-comecar').onclick = async () => {
+  $('btn-comecar').disabled = true;
+  $('btn-comecar').textContent = 'Iniciando…';
+  try {
+    const r = await apiPost({ acao: 'iniciar', t: token });
+    if (!r.ok) return erro(r.erro);
+    perguntas = r.perguntas;
+    emAndamento = true;
+    idx = 0;
+    abrirPergunta();
+  } catch (e) {
+    $('btn-comecar').disabled = false;
+    $('btn-comecar').textContent = 'Começar entrevista';
+    alert('Falha de conexão. Verifique sua internet e tente de novo.');
+  }
+};
+
+// ---------- Pergunta ----------
+
+function abrirPergunta() {
+  const p = perguntas[idx];
+  $('contador').textContent = `Pergunta ${idx + 1} de ${perguntas.length}`;
+  $('texto-pergunta').textContent = p.texto;
+  $('envio-erro').style.display = 'none';
+  mostrar('pergunta');
+  if (config.tempoLeitura > 0) faseLeitura();
+  else faseGravacao();
+}
+
+function faseLeitura() {
+  $('estado').textContent = 'Leia a pergunta. A gravação começa quando o tempo acabar.';
+  const btn = $('btn-acao');
+  btn.disabled = false;
+  btn.textContent = 'Começar a responder agora';
+  btn.onclick = () => { pararTimer(); faseGravacao(); };
+  contagem(config.tempoLeitura, faseGravacao);
+}
+
+function faseGravacao() {
+  const tipo = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/webm']
+    .find(t => MediaRecorder.isTypeSupported(t)) || '';
+  const rec = new MediaRecorder(stream, tipo ? { mimeType: tipo } : undefined);
+  const partes = [];
+  const inicio = Date.now();
+  rec.ondataavailable = e => e.data.size && partes.push(e.data);
+  rec.onstop = () => {
+    const duracao = Math.round((Date.now() - inicio) / 1000);
+    enviar(new Blob(partes, { type: rec.mimeType || tipo || 'audio/webm' }), duracao);
+  };
+  rec.start(1000);
+
+  $('estado').innerHTML = '<span class="ponto"></span> Gravando sua resposta';
+  const btn = $('btn-acao');
+  btn.textContent = 'Concluir resposta';
+  btn.disabled = true;
+  setTimeout(() => { if (rec.state === 'recording') btn.disabled = false; }, MIN_RESPOSTA_SEG * 1000);
+  const finalizar = () => {
+    pararTimer();
+    btn.disabled = true;
+    if (rec.state === 'recording') rec.stop();
+  };
+  btn.onclick = finalizar;
+  contagem(config.tempoResposta, finalizar);
+}
+
+async function enviar(blob, duracao) {
+  const p = perguntas[idx];
+  $('estado').textContent = 'Enviando sua resposta…';
+  $('relogio').textContent = '';
+  const btn = $('btn-acao');
+  btn.disabled = true;
+  btn.textContent = 'Enviando…';
+
+  try {
+    const audioBase64 = await paraBase64(blob);
+    const r = await comRetentativas(() => apiPost({
+      acao: 'resposta', t: token, ordem: p.ordem, mimeType: blob.type, duracao, audioBase64,
+    }));
+    if (!r.ok) throw new Error(r.erro);
+    proxima();
+  } catch (e) {
+    $('estado').textContent = 'Sua resposta está gravada, mas não conseguimos enviar.';
+    $('envio-erro').textContent = 'Verifique sua internet e clique em "Tentar enviar de novo". Não feche esta página.';
+    $('envio-erro').style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Tentar enviar de novo';
+    btn.onclick = () => { $('envio-erro').style.display = 'none'; enviar(blob, duracao); };
+  }
+}
+
+async function proxima() {
+  idx++;
+  if (idx < perguntas.length) return abrirPergunta();
+  try { await comRetentativas(() => apiPost({ acao: 'concluir', t: token })); } catch (e) { /* respostas já salvas */ }
+  emAndamento = false;
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  mostrar('fim');
+}
+
+// ---------- Utilitários ----------
+
+function contagem(segundos, aoTerminar) {
+  pararTimer();
+  const fim = Date.now() + segundos * 1000;
+  const tick = () => {
+    const resta = Math.max(0, Math.ceil((fim - Date.now()) / 1000));
+    $('relogio').textContent = formatar(resta);
+    $('relogio').classList.toggle('urgente', resta <= 10);
+    $('barra-tempo').style.width = (100 * resta / segundos) + '%';
+    if (resta <= 0) { pararTimer(); aoTerminar(); }
+  };
+  tick();
+  timer = setInterval(tick, 250);
+}
+
+function pararTimer() {
+  if (timer) clearInterval(timer);
+  timer = null;
+}
+
+function formatar(s) {
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function paraBase64(blob) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(String(fr.result).split(',')[1]);
+    fr.onerror = rej;
+    fr.readAsDataURL(blob);
+  });
+}
+
+window.addEventListener('beforeunload', e => {
+  if (emAndamento) { e.preventDefault(); e.returnValue = ''; }
+});
+
+carregar();
+</script>
+</body>
+</html>
